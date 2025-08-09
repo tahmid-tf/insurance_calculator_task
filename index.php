@@ -151,14 +151,23 @@
             for ($i = 1; $i <= $totalMonths; $i++) {
                 $deposit = 0;
 
+                // Monthly deposit at beginning
                 if ($timing === "begin") {
                     $balance += $monthly;
                     $deposit += $monthly;
                     $totalMonthlyContrib += $monthly;
                 }
 
+                // Annual deposit at beginning
+                if ($i % 12 == 0 && $timing === "begin") {
+                    $balance += $annual;
+                    $deposit += $annual;
+                    $totalAnnualContrib += $annual;
+                }
+
+                // Apply interest after deposit
                 $prevBalance = $balance;
-                $balance *= (1 + $rate / 12);
+                $balance *= (1 + $ratePerPeriod);
                 $interestEarned = $balance - $prevBalance;
 
                 if ($i == 1) {
@@ -167,29 +176,18 @@
                     $interestFromContrib += $interestEarned;
                 }
 
+                // Monthly deposit at end
                 if ($timing === "end") {
                     $balance += $monthly;
                     $deposit += $monthly;
                     $totalMonthlyContrib += $monthly;
                 }
 
-                if ($i % 12 == 0) {
-                    if ($timing === "begin") {
-                        $balance += $annual;
-                        $deposit += $annual;
-                        $totalAnnualContrib += $annual;
-                    }
-
-                    $prevBalance = $balance;
-                    $balance *= (1 + $rate / 12);
-                    $interestEarned = $balance - $prevBalance;
-                    $interestFromContrib += $interestEarned;
-
-                    if ($timing === "end") {
-                        $balance += $annual;
-                        $deposit += $annual;
-                        $totalAnnualContrib += $annual;
-                    }
+                // Annual deposit at end
+                if ($i % 12 == 0 && $timing === "end") {
+                    $balance += $annual;
+                    $deposit += $annual;
+                    $totalAnnualContrib += $annual;
                 }
 
                 $monthlySchedule[] = [
@@ -312,6 +310,7 @@
         }
     }
     ?>
+
 
 
 
