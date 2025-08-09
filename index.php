@@ -147,6 +147,7 @@
             $balance += $totalContributions;
             $interestFromContrib = 0;
         } elseif ($compound === "monthly") {
+            $ratePerPeriod = $rate / 12;
             for ($i = 1; $i <= $totalMonths; $i++) {
                 $deposit = 0;
 
