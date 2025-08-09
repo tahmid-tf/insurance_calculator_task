@@ -97,6 +97,7 @@
             <option value="quarterly" <?= ($_POST['compound'] ?? '') === 'quarterly' ? 'selected' : '' ?>>Quarterly</option>
             <option value="monthly" <?= ($_POST['compound'] ?? '') === 'monthly' ? 'selected' : '' ?>>Monthly</option>
             <option value="daily" <?= ($_POST['compound'] ?? '') === 'daily' ? 'selected' : '' ?>>Daily</option>
+            <option value="continuous" <?= ($_POST['compound'] ?? '') === 'continuous' ? 'selected' : '' ?>>Continuously</option>
         </select>
 
 
@@ -136,68 +137,84 @@
         $interestFromInitial = 0;
         $interestFromContrib = 0;
 
-        // Determine compounding frequency
-        switch ($compound) {
-            case "monthly":
-                $periods = $totalMonths;
-                $ratePerPeriod = $rate / 12;
-                break;
-            case "daily":
-                $periods = round($totalYears * 365);
-                $ratePerPeriod = $rate / 365;
-                break;
-            default: // annually
-                $periods = floor($totalYears);
-                $ratePerPeriod = $rate;
-        }
+        if ($compound === "continuous") {
+            // Continuous compounding
+            $balance = $initial * exp($rate * $totalYears);
+            $interestFromInitial = $balance - $initial;
 
-        for ($i = 1; $i <= $periods; $i++) {
-            // Monthly contributions (only for monthly/daily compounding)
-            if (in_array($compound, ["monthly", "daily"]) && $monthly > 0) {
-                if ($timing === "begin") {
-                    $balance += $monthly;
-                    $totalMonthlyContrib += $monthly;
-                }
+            // Add contributions after compounding
+            $totalAnnualContrib = $annual * $years;
+            $totalMonthlyContrib = $monthly * $totalMonths;
+            $totalContributions = $totalAnnualContrib + $totalMonthlyContrib;
+            $balance += $totalContributions;
+            $interestFromContrib = 0; // Optional: refine if needed
+        } else {
+            // Determine compounding frequency
+            switch ($compound) {
+                case "monthly":
+                    $periods = $totalMonths;
+                    $ratePerPeriod = $rate / 12;
+                    break;
+                case "daily":
+                    $periods = round($totalYears * 365);
+                    $ratePerPeriod = $rate / 365;
+                    break;
+                case "quarterly":
+                    $periods = round($totalYears * 4);
+                    $ratePerPeriod = $rate / 4;
+                    break;
+                default: // annually
+                    $periods = floor($totalYears);
+                    $ratePerPeriod = $rate;
             }
 
-            // Annual contributions (every 12 months or 365 days)
-            if ($annual > 0) {
+            for ($i = 1; $i <= $periods; $i++) {
+                // Monthly contributions
+                if (in_array($compound, ["monthly", "daily", "quarterly"]) && $monthly > 0) {
+                    if ($timing === "begin") {
+                        $balance += $monthly;
+                        $totalMonthlyContrib += $monthly;
+                    }
+                }
+
+                // Annual contributions
                 $isAnnualPeriod = false;
                 if ($compound === "monthly" && $i % 12 === 0) $isAnnualPeriod = true;
                 if ($compound === "daily" && $i % 365 === 0) $isAnnualPeriod = true;
+                if ($compound === "quarterly" && $i % 4 === 0) $isAnnualPeriod = true;
                 if ($compound === "annually") $isAnnualPeriod = true;
 
-                if ($isAnnualPeriod) {
+                if ($annual > 0 && $isAnnualPeriod) {
                     if ($timing === "begin") {
                         $balance += $annual;
                         $totalAnnualContrib += $annual;
                     }
                 }
-            }
 
-            // Apply interest
-            $prevBalance = $balance;
-            $balance *= (1 + $ratePerPeriod);
-            $interestEarned = $balance - $prevBalance;
+                // Apply interest
+                $prevBalance = $balance;
+                $balance *= (1 + $ratePerPeriod);
+                $interestEarned = $balance - $prevBalance;
 
-            if ($i == 1) {
-                $interestFromInitial += $interestEarned;
-            } else {
-                $interestFromContrib += $interestEarned;
-            }
-
-            // Contributions after interest
-            if (in_array($compound, ["monthly", "daily"]) && $monthly > 0) {
-                if ($timing === "end") {
-                    $balance += $monthly;
-                    $totalMonthlyContrib += $monthly;
+                if ($i == 1) {
+                    $interestFromInitial += $interestEarned;
+                } else {
+                    $interestFromContrib += $interestEarned;
                 }
-            }
 
-            if ($annual > 0 && isset($isAnnualPeriod) && $isAnnualPeriod) {
-                if ($timing === "end") {
-                    $balance += $annual;
-                    $totalAnnualContrib += $annual;
+                // Contributions after interest
+                if (in_array($compound, ["monthly", "daily", "quarterly"]) && $monthly > 0) {
+                    if ($timing === "end") {
+                        $balance += $monthly;
+                        $totalMonthlyContrib += $monthly;
+                    }
+                }
+
+                if ($annual > 0 && $isAnnualPeriod) {
+                    if ($timing === "end") {
+                        $balance += $annual;
+                        $totalAnnualContrib += $annual;
+                    }
                 }
             }
         }
@@ -222,8 +239,14 @@
         echo "<p><strong>Buying Power After Inflation:</strong> $" . number_format($buyingPower, 2) . "</p>";
 
         // Effective annual rate display
-        if ($compound !== "annually") {
-            $periodsPerYear = $compound === "monthly" ? 12 : ($compound === "daily" ? 365 : 1);
+        if ($compound === "continuous") {
+            $effectiveAnnualRate = exp($rate) - 1;
+            echo "<p><em>* Interest rate of " . ($_POST['interest_rate']) . "% compounded continuously is equivalent to ";
+            echo number_format($effectiveAnnualRate * 100, 3) . "% annually</em></p>";
+        } elseif ($compound !== "annually") {
+            $periodsPerYear = $compound === "monthly" ? 12 :
+                    ($compound === "daily" ? 365 :
+                            ($compound === "quarterly" ? 4 : 1));
             $effectiveAnnualRate = pow(1 + $ratePerPeriod, $periodsPerYear) - 1;
             echo "<p><em>* Interest rate of " . ($_POST['interest_rate']) . "% compounded $compound is equivalent to ";
             echo number_format($effectiveAnnualRate * 100, 3) . "% annually</em></p>";
@@ -232,6 +255,7 @@
         echo "</div>";
     }
     ?>
+
 
 
 </div>
