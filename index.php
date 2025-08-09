@@ -93,9 +93,11 @@
 
         <label>Compound:</label>
         <select name="compound">
-            <option value="annually" selected>Annually</option>
-            <option value="monthly">Monthly</option>
+            <option value="annually" <?= ($_POST['compound'] ?? '') === 'annually' ? 'selected' : '' ?>>Annually</option>
+            <option value="quarterly" <?= ($_POST['compound'] ?? '') === 'quarterly' ? 'selected' : '' ?>>Quarterly</option>
+            <option value="monthly" <?= ($_POST['compound'] ?? '') === 'monthly' ? 'selected' : '' ?>>Monthly</option>
         </select>
+
 
         <label>Investment Length:</label>
         <input type="number" name="investment_year" placeholder="Years" value="<?= $_POST['investment_year'] ?? '' ?>"
@@ -253,6 +255,7 @@
         echo "</div>";
     }
     ?>
+
 
 
 </div>
