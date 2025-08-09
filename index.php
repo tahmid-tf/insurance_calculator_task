@@ -136,25 +136,70 @@
         $totalMonthlyContrib = 0;
         $interestFromInitial = 0;
         $interestFromContrib = 0;
+        $monthlySchedule = [];
 
         if ($compound === "continuous") {
-            // Continuous compounding
             $balance = $initial * exp($rate * $totalYears);
             $interestFromInitial = $balance - $initial;
-
-            // Add contributions after compounding
             $totalAnnualContrib = $annual * $years;
             $totalMonthlyContrib = $monthly * $totalMonths;
             $totalContributions = $totalAnnualContrib + $totalMonthlyContrib;
             $balance += $totalContributions;
-            $interestFromContrib = 0; // Optional: refine if needed
+            $interestFromContrib = 0;
+        } elseif ($compound === "monthly") {
+            for ($i = 1; $i <= $totalMonths; $i++) {
+                $deposit = 0;
+
+                if ($timing === "begin") {
+                    $balance += $monthly;
+                    $deposit += $monthly;
+                    $totalMonthlyContrib += $monthly;
+                }
+
+                $prevBalance = $balance;
+                $balance *= (1 + $rate / 12);
+                $interestEarned = $balance - $prevBalance;
+
+                if ($i == 1) {
+                    $interestFromInitial += $interestEarned;
+                } else {
+                    $interestFromContrib += $interestEarned;
+                }
+
+                if ($timing === "end") {
+                    $balance += $monthly;
+                    $deposit += $monthly;
+                    $totalMonthlyContrib += $monthly;
+                }
+
+                if ($i % 12 == 0) {
+                    if ($timing === "begin") {
+                        $balance += $annual;
+                        $deposit += $annual;
+                        $totalAnnualContrib += $annual;
+                    }
+
+                    $prevBalance = $balance;
+                    $balance *= (1 + $rate / 12);
+                    $interestEarned = $balance - $prevBalance;
+                    $interestFromContrib += $interestEarned;
+
+                    if ($timing === "end") {
+                        $balance += $annual;
+                        $deposit += $annual;
+                        $totalAnnualContrib += $annual;
+                    }
+                }
+
+                $monthlySchedule[] = [
+                        'month' => $i,
+                        'deposit' => $deposit,
+                        'interest' => $interestEarned,
+                        'balance' => $balance
+                ];
+            }
         } else {
-            // Determine compounding frequency
             switch ($compound) {
-                case "monthly":
-                    $periods = $totalMonths;
-                    $ratePerPeriod = $rate / 12;
-                    break;
                 case "daily":
                     $periods = round($totalYears * 365);
                     $ratePerPeriod = $rate / 365;
@@ -163,23 +208,20 @@
                     $periods = round($totalYears * 4);
                     $ratePerPeriod = $rate / 4;
                     break;
-                default: // annually
+                default:
                     $periods = floor($totalYears);
                     $ratePerPeriod = $rate;
             }
 
             for ($i = 1; $i <= $periods; $i++) {
-                // Monthly contributions
-                if (in_array($compound, ["monthly", "daily", "quarterly"]) && $monthly > 0) {
+                if ($monthly > 0 && in_array($compound, ["daily", "quarterly"])) {
                     if ($timing === "begin") {
                         $balance += $monthly;
                         $totalMonthlyContrib += $monthly;
                     }
                 }
 
-                // Annual contributions
                 $isAnnualPeriod = false;
-                if ($compound === "monthly" && $i % 12 === 0) $isAnnualPeriod = true;
                 if ($compound === "daily" && $i % 365 === 0) $isAnnualPeriod = true;
                 if ($compound === "quarterly" && $i % 4 === 0) $isAnnualPeriod = true;
                 if ($compound === "annually") $isAnnualPeriod = true;
@@ -191,7 +233,6 @@
                     }
                 }
 
-                // Apply interest
                 $prevBalance = $balance;
                 $balance *= (1 + $ratePerPeriod);
                 $interestEarned = $balance - $prevBalance;
@@ -202,8 +243,7 @@
                     $interestFromContrib += $interestEarned;
                 }
 
-                // Contributions after interest
-                if (in_array($compound, ["monthly", "daily", "quarterly"]) && $monthly > 0) {
+                if ($monthly > 0 && in_array($compound, ["daily", "quarterly"])) {
                     if ($timing === "end") {
                         $balance += $monthly;
                         $totalMonthlyContrib += $monthly;
@@ -219,7 +259,6 @@
             }
         }
 
-        // Final calculations
         $totalContributions = $totalAnnualContrib + $totalMonthlyContrib;
         $totalPrincipal = $initial + $totalContributions;
         $totalInterest = $balance - $totalPrincipal;
@@ -238,7 +277,6 @@
         echo "<p><strong>Total Interest After Tax:</strong> $" . number_format($interestAfterTax, 2) . "</p>";
         echo "<p><strong>Buying Power After Inflation:</strong> $" . number_format($buyingPower, 2) . "</p>";
 
-        // Effective annual rate display
         if ($compound === "continuous") {
             $effectiveAnnualRate = exp($rate) - 1;
             echo "<p><em>* Interest rate of " . ($_POST['interest_rate']) . "% compounded continuously is equivalent to ";
@@ -253,8 +291,27 @@
         }
 
         echo "</div>";
+
+        // Monthly accumulation table
+        if ($compound === "monthly") {
+            echo "<h4>Accumulation Schedule</h4>";
+            echo "<table border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; width:100%; background:#fff;'>";
+            echo "<tr style='background:#e0e0e0;'><th>Month</th><th>Deposit</th><th>Interest</th><th>Ending Balance</th></tr>";
+
+            foreach ($monthlySchedule as $row) {
+                echo "<tr>";
+                echo "<td>" . $row['month'] . "</td>";
+                echo "<td>$" . number_format($row['deposit'], 2) . "</td>";
+                echo "<td>$" . number_format($row['interest'], 2) . "</td>";
+                echo "<td>$" . number_format($row['balance'], 2) . "</td>";
+                echo "</tr>";
+            }
+
+            echo "</table>";
+        }
     }
     ?>
+
 
 
 
