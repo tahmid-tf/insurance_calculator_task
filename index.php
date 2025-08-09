@@ -76,10 +76,10 @@
         <input type="number" name="initial_investment" value="<?= $_POST['initial_investment'] ?? '' ?>" required/>
 
         <label>Annual Contribution:</label>
-        <input type="number" name="annual_contribution" value="<?= $_POST['annual_contribution'] ?? '' ?>" required/>
+        <input type="number" name="annual_contribution" value="<?= $_POST['annual_contribution'] ?? 0 ?>" required/>
 
         <label>Monthly Contribution:</label>
-        <input type="number" name="monthly_contribution" value="<?= $_POST['monthly_contribution'] ?? '' ?>" required/>
+        <input type="number" name="monthly_contribution" value="<?= $_POST['monthly_contribution'] ?? 0 ?>" required/>
 
         <label>Contribution Timing:</label>
         <select name="contribution_at">
@@ -89,7 +89,7 @@
         </select>
 
         <label>Interest Rate (%):</label>
-        <input type="number" name="interest_rate" value="<?= $_POST['interest_rate'] ?? '' ?>" required/>
+        <input type="number" name="interest_rate" value="<?= $_POST['interest_rate'] ?? 0 ?>" required/>
 
         <label>Compound:</label>
         <select name="compound">
@@ -102,16 +102,16 @@
 
 
         <label>Investment Length:</label>
-        <input type="number" name="investment_year" placeholder="Years" value="<?= $_POST['investment_year'] ?? '' ?>"
+        <input type="number" name="investment_year" placeholder="Years" value="<?= $_POST['investment_year'] ?? 1 ?>"
                required/>
         <input type="number" name="investment_month" placeholder="Months"
-               value="<?= $_POST['investment_month'] ?? '' ?>" required/>
+               value="<?= $_POST['investment_month'] ?? 0 ?>" required/>
 
         <label>Tax Rate (%):</label>
-        <input type="number" name="tax_rate" value="<?= $_POST['tax_rate'] ?? '' ?>" required/>
+        <input type="number" name="tax_rate" value="<?= $_POST['tax_rate'] ?? 0 ?>" required/>
 
         <label>Inflation Rate (%):</label>
-        <input type="number" name="inflation_rate" value="<?= $_POST['inflation_rate'] ?? '' ?>" required/>
+        <input type="number" name="inflation_rate" value="<?= $_POST['inflation_rate'] ?? 0 ?>" required/>
 
         <button type="submit">Calculate</button>
     </form>
